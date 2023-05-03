@@ -1,0 +1,35 @@
+import boto3
+from datetime import datetime
+from boto3.dynamodb.conditions import Key
+import random
+
+
+def lambda_handler(event, context):
+   dateToday=datetime.today().strftime('%Y%m%d')
+   client = boto3.resource('dynamodb')
+   table1 = client.Table('testing')
+   table2 = client.Table('user')
+   response = table2.get_item(Key={'UserID': event['UserID']})
+   results = []
+   recipes = response['Item']['PreviousRecipes']
+   for key,value in recipes.items():
+      if len(recipes)==0:
+         results=table1.get_item(Key={'ID':random.randrange(1,7)})
+      if int(value) == int(dateToday):
+         results.append(table1.get_item(Key={'ID':int(key)}))
+   if len(results)==0:
+      preference = response['Item']['Preferences']
+      for p in preference:
+         results.append(table1.query(IndexName='Region-index',KeyConditionExpression=Key('Region').eq(p))['Items'])
+      results=[item for sublist in results for item in sublist]
+      for reci in results:
+         for key,value in recipes.items():
+            if reci['ID']==int(key):
+               results.remove(reci)
+      results=random.choice(results)
+   #table2.put_item(Item={"UserID":event['UserID'],"PreviousRecipes":{str(results['ID']):dateToday})
+   return results
+   
+   
+   
+      

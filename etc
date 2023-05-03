@@ -1,0 +1,136 @@
+#fav_recipePut
+
+import boto3
+
+
+def lambda_handler(event, context):
+
+   client = boto3.resource('dynamodb')
+
+   table = client.Table('favoriteRecipe')
+
+   response = table.put_item(
+
+       Item={
+
+           'userid': event['userid'],
+
+           'recipeName': event['recipeName']
+       }
+
+   )
+
+   return {
+
+       'statusCode': response['ResponseMetadata']['HTTPStatusCode'],
+
+       'body': 'Record ' + event['userid'] + ' added'
+
+   }
+   
+  
+  #exi_ingredientPut
+import boto3
+
+
+def lambda_handler(event, context):
+
+   client = boto3.resource('dynamodb')
+
+   table = client.Table('existingIngredient')
+
+   response = table.put_item(
+
+       Item={
+
+           'userid': event['userid'],
+
+           'existingIngredient': event['existingIngredient']
+
+       }
+
+   )
+
+   return {
+
+       'statusCode': response['ResponseMetadata']['HTTPStatusCode'],
+
+       'body': 'Record ' + event['userid'] + ' added'
+
+   }
+   
+   
+   
+#putPreference
+
+import boto3
+
+def lambda_handler(event, context):
+   
+   client = boto3.resource('dynamodb')
+
+   table = client.Table('preference')
+
+   response = table.put_item(
+
+       Item={
+
+           'userid': event['userid'],
+
+           'vegetarian': event['vegetarian'],
+
+           'favorite_ingredient': event['favorite_ingredient'],
+
+           'hate_ingredient': event['hate_ingredient'],
+
+           'allergy': event['allergy']
+
+       }
+
+   )
+
+   return {
+
+       'statusCode': response['ResponseMetadata']['HTTPStatusCode'],
+
+       'body': 'Record ' + event['userid'] + ' added'
+
+   }
+   
+   
+   
+#fav_recipeGet   
+   
+import boto3
+
+
+def lambda_handler(event, context):
+
+   client = boto3.resource('dynamodb')
+
+   table = client.Table('favoriteRecipe')
+
+   response = table.get_item(
+
+       Key={
+
+           'userid': event['userid']
+
+       }
+
+   )
+
+   if 'Item' in response:
+
+       return response['Item']
+
+   else:
+
+       return {
+
+           'statusCode': '404',
+
+           'body': 'Not found'
+
+       }
+   

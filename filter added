@@ -1,0 +1,59 @@
+import boto3
+from datetime import datetime
+from boto3.dynamodb.conditions import Key
+import random
+
+
+def lambda_handler(event, context):
+   dateToday=datetime.today().strftime('%Y%m%d')
+   client = boto3.resource('dynamodb')
+   table1 = client.Table('recipe2')
+   table2 = client.Table('user')
+   response = table2.get_item(Key={'UserID': event['UserID']})
+   results = []
+   firstfilter=[]
+   recipes = response['Item']['PreviousRecipes']
+   
+   #check whether preciousRecipes empty, if empty radomly choose recipe
+   #get today's date, and chech if there is a recipe with same date
+   for key,value in recipes.items():
+      if len(recipes)==0:
+         results=table1.get_item(Key={'ID':random.randrange(1,1400)})
+      if int(value) == int(dateToday):
+         results.append(table1.get_item(Key={'ID':int(key)}))
+   
+   
+   if len(results)==0:
+      #filtering regarding region
+      preference = response['Item']['Preferences']
+      for p in preference:
+         firstfilter.append(table1.query(IndexName='Region-index',KeyConditionExpression=Key('Region').eq(p))['Items'])
+      firstfilter=[item for sublist in firstfilter for item in sublist]
+      
+      #filtering regarding ingredient
+      ingredients = response['Item']['Ingredients']
+      num=-1
+      for i in ingredients:
+         compare=[]
+         for j in firstfilter['Item']['Ingredients']:
+            compare.append(j.values())
+         num=num+1
+         if i in compare:
+            results.append(firstfilter[num])
+                  
+      # choose only one amoung filtered recipe      
+      for reci in results:
+         for key,value in recipes.items():
+            if reci['ID']==int(key):
+               results.remove(reci)
+      results=random.choice(results)
+      
+   #leave history on previous recipe
+   for key,value in recipes.items():
+      if not int(value) == int(dateToday):
+         table2.update_item(Key={"UserID":event['UserID']},
+            UpdateExpression='set PreviousRecipes.#key=:val1',
+            ExpressionAttributeValues={':val1':int(dateToday)},
+            ExpressionAttributeNames={'#key':str(results['ID'])}
+            )
+   return results
